@@ -149,10 +149,21 @@ export async function translateLibre(text: string, targetLang: string): Promise<
 export async function translateMyMemory(text: string, targetLang: string): Promise<string> {
   try {
     console.log('[multiService] Tradução MyMemory iniciando...');
-    // usa langpair=auto|pt (espera algo como en|pt, mas auto frequentemente funciona)
-    const url = `${MYMEMORY_URL}?q=${encodeURIComponent(text)}&langpair=auto|${encodeURIComponent(targetLang.toLowerCase())}`;
+    
+    // Mudamos 'auto' para 'en' (Inglês) para evitar o erro de 'INVALID SOURCE LANGUAGE'
+    // O par fica 'en|pt' (Inglês para Português)
+    const sourceLang = 'en'; 
+    const url = `${MYMEMORY_URL}?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${encodeURIComponent(targetLang.toLowerCase())}`;
+    
     const resp = await fetch(url);
     const data = await resp.json();
+    
+    // Se a MyMemory retornar erro, ela envia o status 200 mas com mensagem de erro no texto
+    if (data.responseStatus !== 200) {
+      console.warn('[multiService] MyMemory retornou status de erro:', data.responseDetails);
+      return text;
+    }
+
     const translated = data?.responseData?.translatedText;
     return translated || text;
   } catch (err) {
