@@ -1,7 +1,7 @@
+import { performOCR, translateText } from './multiService';
 import React, { useState } from 'react';
 import { Screen, TranscriptionItem } from './types';
 import { MOCK_TRANSCRIPTIONS, MOCK_FOLDERS } from './constants';
-import { performOCR, translateText } from './geminiService';
 
 /**
  * Componente Icon centralizado.
@@ -71,10 +71,10 @@ const BottomNav: React.FC<{ active: Screen; onNavigate: (s: Screen) => void }> =
 
 // --- Views ---
 
-const HomeView: React.FC<{ onOCR: (file: File) => void; history: TranscriptionItem[] }> = ({ onOCR, history }) => {
+const HomeView: React.FC<{ onOCR: (file: File) => void; history: TranscriptionItem[]; isScanning: boolean }> = ({ onOCR, history, isScanning }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) onOCR(file);
+    if (file && !isScanning) onOCR(file);
   };
 
   return (
@@ -89,12 +89,12 @@ const HomeView: React.FC<{ onOCR: (file: File) => void; history: TranscriptionIt
           
           <div className="flex flex-col gap-4 w-full">
             <div className="grid grid-cols-2 gap-4 w-full">
-              <label className="cursor-pointer flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 px-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-primary/20">
+              <label className={`cursor-pointer flex items-center justify-center gap-2 ${isScanning ? 'opacity-50 pointer-events-none' : 'bg-primary text-white'} font-bold py-4 px-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-primary/20`}>
                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
                 <Icon name="photo_camera" className="text-white" />
                 <span>Câmera</span>
               </label>
-              <label className="cursor-pointer flex items-center justify-center gap-2 border-2 border-primary text-primary font-bold py-4 px-4 rounded-2xl active:scale-95 transition-all">
+              <label className={`cursor-pointer flex items-center justify-center gap-2 ${isScanning ? 'opacity-50 pointer-events-none' : 'border-2 border-primary text-primary'} font-bold py-4 px-4 rounded-2xl active:scale-95 transition-all`}>
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 <Icon name="photo_library" className="text-primary" />
                 <span>Galeria</span>
@@ -118,7 +118,7 @@ const HomeView: React.FC<{ onOCR: (file: File) => void; history: TranscriptionIt
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">{item.date}</span>
-                  <span className="px-1.5 py-0.5 rounded-md bg-primary/5 text-primary text-[9px] font-black uppercase">{item.language}</span>
+                  <span className="px-1.5 py-0.5 rounded-md bg-primary/5 text-primary text-[9px] font-black uppercase tracking-tighter">{item.language}</span>
                 </div>
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{item.title}</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 italic">{item.content}</p>
@@ -148,13 +148,13 @@ const ProcessingView: React.FC<{ progress: number }> = ({ progress }) => (
 
     <div className="w-full text-center space-y-2">
       <h3 className="text-2xl font-black tracking-tight text-brand-deep-blue dark:text-white">Extraindo Texto...</h3>
-      <p className="text-slate-500 dark:text-slate-400 text-sm">O Gemini está lendo seu documento agora.</p>
+      <p className="text-slate-500 dark:text-slate-400 text-sm">Processamento local em andamento.</p>
     </div>
 
     <div className="w-full space-y-4 px-4">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-slate-400">
-          <span>IA Engine v3.1</span>
+          <span>OCR Engine</span>
           <span className="text-primary">{progress}%</span>
         </div>
         <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
@@ -178,7 +178,7 @@ const ResultView: React.FC<{
         <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
         <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Escaneamento Concluído</span>
       </div>
-      <span className="text-[12px] font-bold text-slate-400">{resultText.split(' ').length} palavras</span>
+      <span className="text-[12px] font-bold text-slate-400">{resultText.split(' ').filter(Boolean).length} palavras</span>
     </div>
     
     <div className="flex-1 flex flex-col relative group">
@@ -210,7 +210,7 @@ const ResultView: React.FC<{
       </button>
       <button 
         onClick={onTranslate}
-        disabled={isTranslating}
+        disabled={isTranslating || !resultText.trim()}
         className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 active:scale-95 transition-all shadow-sm disabled:opacity-50"
       >
         <Icon name="translate" className="text-primary" />
@@ -279,7 +279,7 @@ const SettingsView: React.FC = () => {
                 <div className="size-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
                   <Icon name="bolt" className="text-purple-500" />
                 </div>
-                <span className="font-bold text-sm">Turbo OCR (Gemini 3)</span>
+                <span className="font-bold text-sm">Turbo OCR (Tesseract + OCR.Space)</span>
               </div>
               <div className="w-12 h-6 bg-primary rounded-full relative flex items-center p-1">
                 <div className="size-4 bg-white rounded-full ml-auto shadow-sm"></div>
@@ -290,9 +290,9 @@ const SettingsView: React.FC = () => {
                 <div className="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
                   <Icon name="translate" className="text-blue-500" />
                 </div>
-                <span className="font-bold text-sm">Tradução Padrão</span>
+                <span className="font-bold text-sm">Tradução Padrão (LibreTranslate)</span>
               </div>
-              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Português-BR</span>
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Português</span>
             </button>
           </div>
         </section>
@@ -337,10 +337,12 @@ export default function App() {
   const [resultText, setResultText] = useState('');
   const [history, setHistory] = useState<TranscriptionItem[]>(MOCK_TRANSCRIPTIONS);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   const handleOCR = async (file: File) => {
     setCurrentScreen('processing');
     setProgress(0);
+    setIsScanning(true);
 
     const interval = setInterval(() => {
       setProgress(p => Math.min(p + 12, 98));
@@ -349,20 +351,48 @@ export default function App() {
     try {
       const reader = new FileReader();
       reader.onload = async () => {
-        const base64 = reader.result as string;
-        const text = await performOCR(base64);
+        try {
+          const base64 = reader.result as string;
+          const text = await performOCR(base64);
+
+          // Limpeza e normalização do texto para usar no app
+          const cleanText = (text || "")
+            .replace(/\r\n/g, '\n')         // uniformiza quebras de linha
+            .replace(/\n+/g, ' ')          // transforma quebras em espaço
+            .replace(/\s+/g, ' ')          // colapsa espaços repetidos
+            .replace(/[“”„]/g, '"')        // normalize aspas tipográficas
+            .replace(/[‘’‚]/g, "'")
+            .trim();
+
+          clearInterval(interval);
+          setProgress(100);
+          setTimeout(() => {
+            setResultText(cleanText);
+            setCurrentScreen('result');
+          }, 600);
+        } catch (innerErr) {
+          clearInterval(interval);
+          console.error("Erro no processamento OCR (reader.onload):", innerErr);
+          alert('Houve um erro ao processar a imagem. Veja o console para mais detalhes.');
+          setCurrentScreen('home');
+        } finally {
+          setIsScanning(false);
+        }
+      };
+      reader.onerror = (e) => {
         clearInterval(interval);
-        setProgress(100);
-        setTimeout(() => {
-          setResultText(text);
-          setCurrentScreen('result');
-        }, 600);
+        console.error("FileReader erro:", e);
+        alert('Não foi possível ler o arquivo. Tente outro arquivo ou verifique permissões.');
+        setCurrentScreen('home');
+        setIsScanning(false);
       };
       reader.readAsDataURL(file);
     } catch (err) {
       clearInterval(interval);
+      console.error("Erro no handleOCR:", err);
       alert('Houve um erro no processamento. Tente novamente.');
       setCurrentScreen('home');
+      setIsScanning(false);
     }
   };
 
@@ -382,12 +412,33 @@ export default function App() {
   };
 
   const handleTranslate = async () => {
+    if (!resultText || resultText.trim().length < 2) {
+      alert("Primeiro escaneie uma imagem ou digite um texto.");
+      return;
+    }
+
     setIsTranslating(true);
     try {
-      const translated = await translateText(resultText, "Português");
+      // Sanitização do texto antes de enviar para a IA/serviço
+      const sanitizedText = resultText
+        .replace(/\r\n/g, '\n')
+        .replace(/\n+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/[“”„]/g, '"')
+        .replace(/[‘’‚]/g, "'")
+        .replace(/["]+/g, "'") // evita aspas duplas problemáticas
+        .trim();
+
+      // Limita tamanho para evitar problemas (opcional)
+      const maxLen = 8000;
+      const toTranslate = sanitizedText.length > maxLen ? sanitizedText.slice(0, maxLen) : sanitizedText;
+
+      // Usamos 'pt' como código de idioma para LibreTranslate / MyMemory
+      const translated = await translateText(toTranslate, 'pt');
       setResultText(translated);
-    } catch (err) {
-      alert("Falha ao traduzir.");
+    } catch (err: any) {
+      console.error("Erro no frontend ao traduzir:", err);
+      alert("Falha ao traduzir. Veja o console para mais detalhes.");
     } finally {
       setIsTranslating(false);
     }
@@ -395,7 +446,7 @@ export default function App() {
 
   const renderScreen = () => {
     switch (currentScreen) {
-      case 'home': return <HomeView onOCR={handleOCR} history={history} />;
+      case 'home': return <HomeView onOCR={handleOCR} history={history} isScanning={isScanning} />;
       case 'processing': return <ProcessingView progress={progress} />;
       case 'result': return (
         <ResultView 
@@ -451,7 +502,7 @@ export default function App() {
           </div>
         </div>
       );
-      default: return <HomeView onOCR={handleOCR} history={history} />;
+      default: return <HomeView onOCR={handleOCR} history={history} isScanning={isScanning} />;
     }
   };
 
