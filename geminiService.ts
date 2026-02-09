@@ -110,4 +110,14 @@ export async function translateText(inputText: string, targetLanguage = "Portugu
       } else if ((response as any).outputText) {
         translated = (response as any).outputText;
       } else {
-        translated =
+        translated = JSON.stringify(response);
+      }
+    }
+
+    console.log("DEBUG: translateText OK, comprimento resultado:", translated.length);
+    return translated;
+  } catch (error: any) {
+    console.error("DEBUG: Erro ao traduzir:", error);
+    throw new Error("Falha ao traduzir");
+  }
+}
