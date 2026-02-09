@@ -1,8 +1,22 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Screen, TranscriptionItem } from './types';
 import { MOCK_TRANSCRIPTIONS, MOCK_FOLDERS } from './constants';
 import { performOCR, translateText } from './geminiService';
+
+/**
+ * Componente Icon centralizado.
+ * - Usa Material Symbols por padrão.
+ * - Classe notranslate evita que serviços de tradução (ou o navegador) convertam o texto do ícone.
+ * - Recebe className para controlar tamanho/cores via Tailwind.
+ */
+const Icon: React.FC<{ name: string; className?: string; variant?: 'outlined' | 'classic' }> = ({ name, className = '', variant = 'outlined' }) => {
+  const base = variant === 'outlined' ? 'material-symbols-outlined notranslate' : 'material-icons notranslate';
+  return (
+    <span className={`${base} ${className}`} aria-hidden="true" role="img">
+      {name}
+    </span>
+  );
+};
 
 // --- Shared Components ---
 
@@ -11,13 +25,13 @@ const Navbar: React.FC<{ title: string; onBack?: () => void; rightElement?: Reac
     <div className="flex items-center gap-4">
       {onBack && (
         <button onClick={onBack} className="p-2 -ml-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-90">
-          <span className="material-symbols-outlined text-primary text-2xl">arrow_back_ios_new</span>
+          <Icon name="arrow_back_ios_new" className="text-primary text-2xl" />
         </button>
       )}
       <div className="flex items-center gap-2.5">
         {!onBack && (
           <div className="bg-brand-deep-blue dark:bg-brand-electric-cyan/20 p-1.5 rounded-lg shadow-sm">
-            <span className="material-symbols-outlined text-white dark:text-brand-electric-cyan text-2xl font-bold block">document_scanner</span>
+            <Icon name="document_scanner" className="text-white dark:text-brand-electric-cyan text-2xl font-bold block" />
           </div>
         )}
         <h1 className="text-xl font-bold tracking-tight text-brand-deep-blue dark:text-brand-electric-cyan truncate max-w-[200px]">{title}</h1>
@@ -33,22 +47,22 @@ const BottomNav: React.FC<{ active: Screen; onNavigate: (s: Screen) => void }> =
   <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 pb-safe pt-3 shadow-[0_-8px_20px_rgba(0,0,0,0.1)] z-40">
     <div className="max-w-md mx-auto flex items-center justify-around px-4 pb-2">
       <button onClick={() => onNavigate('home')} className={`flex flex-col items-center gap-1 transition-colors ${active === 'home' ? 'text-primary' : 'text-slate-400'}`}>
-        <span className={`material-symbols-outlined text-3xl ${active === 'home' ? 'fill-1' : ''}`}>home</span>
+        <Icon name="home" className={`text-3xl ${active === 'home' ? 'fill-1' : ''}`} />
         <span className="text-[10px] font-bold uppercase tracking-widest">Início</span>
       </button>
       <button onClick={() => onNavigate('history')} className={`flex flex-col items-center gap-1 transition-colors ${active === 'history' ? 'text-primary' : 'text-slate-400'}`}>
-        <span className={`material-symbols-outlined text-3xl ${active === 'history' ? 'fill-1' : ''}`}>history</span>
+        <Icon name="history" className={`text-3xl ${active === 'history' ? 'fill-1' : ''}`} />
         <span className="text-[10px] font-semibold uppercase tracking-widest">Histórico</span>
       </button>
       <button onClick={() => onNavigate('home')} className="relative -top-6 flex items-center justify-center size-16 rounded-full bg-primary shadow-lg shadow-primary/40 border-4 border-slate-50 dark:border-background-dark active:scale-95 transition-transform">
-        <span className="material-symbols-outlined text-white text-4xl">add_a_photo</span>
+        <Icon name="add_a_photo" className="text-white text-4xl" />
       </button>
       <button onClick={() => onNavigate('folders')} className={`flex flex-col items-center gap-1 transition-colors ${active === 'folders' ? 'text-primary' : 'text-slate-400'}`}>
-        <span className={`material-symbols-outlined text-3xl ${active === 'folders' ? 'fill-1' : ''}`}>bookmark</span>
+        <Icon name="bookmark" className={`text-3xl ${active === 'folders' ? 'fill-1' : ''}`} />
         <span className="text-[10px] font-semibold uppercase tracking-widest">Pastas</span>
       </button>
       <button onClick={() => onNavigate('settings')} className={`flex flex-col items-center gap-1 transition-colors ${active === 'settings' ? 'text-primary' : 'text-slate-400'}`}>
-        <span className={`material-symbols-outlined text-3xl ${active === 'settings' ? 'fill-1' : ''}`}>settings</span>
+        <Icon name="settings" className={`text-3xl ${active === 'settings' ? 'fill-1' : ''}`} />
         <span className="text-[10px] font-semibold uppercase tracking-widest">Ajustes</span>
       </button>
     </div>
@@ -68,7 +82,7 @@ const HomeView: React.FC<{ onOCR: (file: File) => void; history: TranscriptionIt
       <section className="p-6">
         <div className="relative overflow-hidden bg-gradient-to-br from-brand-deep-blue/5 to-brand-electric-cyan/5 dark:from-brand-deep-blue/20 dark:to-brand-electric-cyan/10 rounded-3xl border border-brand-deep-blue/10 dark:border-brand-electric-cyan/20 p-8 flex flex-col items-center text-center shadow-inner">
           <div className="mb-5 bg-white dark:bg-slate-800 shadow-xl p-6 rounded-full border border-brand-deep-blue/5 dark:border-brand-electric-cyan/20">
-            <span className="material-symbols-outlined text-brand-deep-blue dark:text-brand-electric-cyan text-5xl">photo_camera</span>
+            <Icon name="photo_camera" className="text-brand-deep-blue dark:text-brand-electric-cyan text-5xl" />
           </div>
           <h2 className="text-2xl font-bold mb-2 text-brand-deep-blue dark:text-white">Digitalizar Agora</h2>
           <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm px-4">Converta fotos de documentos em texto editável em segundos.</p>
@@ -77,12 +91,12 @@ const HomeView: React.FC<{ onOCR: (file: File) => void; history: TranscriptionIt
             <div className="grid grid-cols-2 gap-4 w-full">
               <label className="cursor-pointer flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 px-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-primary/20">
                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
-                <span className="material-symbols-outlined">photo_camera</span>
+                <Icon name="photo_camera" className="text-white" />
                 <span>Câmera</span>
               </label>
               <label className="cursor-pointer flex items-center justify-center gap-2 border-2 border-primary text-primary font-bold py-4 px-4 rounded-2xl active:scale-95 transition-all">
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                <span className="material-symbols-outlined">gallery_thumbnail</span>
+                <Icon name="photo_library" className="text-primary" />
                 <span>Galeria</span>
               </label>
             </div>
@@ -99,7 +113,7 @@ const HomeView: React.FC<{ onOCR: (file: File) => void; history: TranscriptionIt
           {history.length > 0 ? history.slice(0, 3).map(item => (
             <div key={item.id} className="flex items-center gap-4 bg-white dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 active:bg-slate-50 dark:active:bg-slate-800 transition-colors cursor-pointer group shadow-sm">
               <div className="size-14 rounded-xl overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-primary">
-                {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <span className="material-symbols-outlined">description</span>}
+                {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <Icon name="description" className="text-2xl" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
@@ -109,7 +123,7 @@ const HomeView: React.FC<{ onOCR: (file: File) => void; history: TranscriptionIt
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{item.title}</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 italic">{item.content}</p>
               </div>
-              <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors">chevron_right</span>
+              <Icon name="chevron_right" className="text-slate-300 group-hover:text-primary transition-colors" />
             </div>
           )) : (
             <div className="text-center py-10 text-slate-400 italic text-sm">Nenhuma transcrição ainda.</div>
@@ -191,7 +205,7 @@ const ResultView: React.FC<{
         }}
         className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 active:scale-95 transition-all shadow-sm"
       >
-        <span className="material-symbols-outlined text-primary">content_copy</span>
+        <Icon name="content_copy" className="text-primary" />
         <span className="text-[11px] font-black uppercase">Copiar</span>
       </button>
       <button 
@@ -199,14 +213,14 @@ const ResultView: React.FC<{
         disabled={isTranslating}
         className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 active:scale-95 transition-all shadow-sm disabled:opacity-50"
       >
-        <span className="material-symbols-outlined text-primary">translate</span>
+        <Icon name="translate" className="text-primary" />
         <span className="text-[11px] font-black uppercase">Traduzir</span>
       </button>
       <button 
         onClick={onSave}
         className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-primary text-white active:scale-95 transition-all shadow-lg shadow-primary/30 col-span-2 font-bold"
       >
-        <span className="material-symbols-outlined">save_as</span>
+        <Icon name="save_as" />
         <span className="text-xs font-black uppercase tracking-wider">Salvar no Meu Histórico</span>
       </button>
     </section>
@@ -245,14 +259,14 @@ const SettingsView: React.FC = () => {
             >
               <div className="flex items-center gap-4">
                 <div className="size-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
-                  <span className="material-symbols-outlined">share</span>
+                  <Icon name="share" className="text-green-500" />
                 </div>
                 <div className="text-left">
                   <span className="font-bold text-sm block">Compartilhar App</span>
                   <span className="text-[10px] text-slate-400">Envie o link para o seu celular</span>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-slate-300">send</span>
+              <Icon name="send" className="text-slate-300" />
             </button>
           </div>
         </section>
@@ -263,7 +277,7 @@ const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-50 dark:border-slate-800/50">
               <div className="flex items-center gap-4">
                 <div className="size-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
-                  <span className="material-symbols-outlined">bolt</span>
+                  <Icon name="bolt" className="text-purple-500" />
                 </div>
                 <span className="font-bold text-sm">Turbo OCR (Gemini 3)</span>
               </div>
@@ -274,7 +288,7 @@ const SettingsView: React.FC = () => {
             <button className="w-full flex items-center justify-between px-6 py-5">
               <div className="flex items-center gap-4">
                 <div className="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                  <span className="material-symbols-outlined">translate</span>
+                  <Icon name="translate" className="text-blue-500" />
                 </div>
                 <span className="font-bold text-sm">Tradução Padrão</span>
               </div>
@@ -289,16 +303,16 @@ const SettingsView: React.FC = () => {
             <button className="w-full flex items-center justify-between px-6 py-5 border-b border-slate-50 dark:border-slate-800/50">
               <div className="flex items-center gap-4">
                 <div className="size-10 rounded-xl bg-slate-500/10 flex items-center justify-center text-slate-500">
-                  <span className="material-symbols-outlined">cloud_sync</span>
+                  <Icon name="cloud_sync" className="text-slate-500" />
                 </div>
                 <span className="font-bold text-sm">Sincronizar Dados</span>
               </div>
-              <span className="material-symbols-outlined text-slate-300">chevron_right</span>
+              <Icon name="chevron_right" className="text-slate-300" />
             </button>
             <button className="w-full flex items-center justify-between px-6 py-5 text-red-500 active:bg-red-50 transition-colors">
               <div className="flex items-center gap-4">
                 <div className="size-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
-                  <span className="material-symbols-outlined">logout</span>
+                  <Icon name="logout" className="text-red-500" />
                 </div>
                 <span className="font-bold text-sm">Sair da Conta</span>
               </div>
@@ -399,13 +413,13 @@ export default function App() {
             {history.map(item => (
               <div key={item.id} className="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl flex items-center gap-4 shadow-sm active:scale-[0.98] transition-all">
                 <div className="size-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                  <span className="material-symbols-outlined">description</span>
+                  <Icon name="description" className="text-3xl" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm truncate">{item.title}</p>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">{item.date} • {item.time}</p>
                 </div>
-                <span className="material-symbols-outlined text-slate-300">open_in_new</span>
+                <Icon name="open_in_new" className="text-slate-300" />
               </div>
             ))}
           </div>
@@ -420,18 +434,18 @@ export default function App() {
               <div key={f.id} className="p-5 bg-white dark:bg-card-dark rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm active:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-5">
                   <div className="size-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner">
-                    <span className="material-symbols-outlined text-3xl fill-1">folder</span>
+                    <Icon name="folder" className="text-3xl fill-1" />
                   </div>
                   <div>
                     <p className="font-black text-slate-800 dark:text-white">{f.name}</p>
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{f.itemCount} arquivos</p>
                   </div>
                 </div>
-                <span className="material-symbols-outlined text-slate-200">chevron_right</span>
+                <Icon name="chevron_right" className="text-slate-200" />
               </div>
             ))}
             <button className="p-5 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] flex items-center justify-center gap-2 text-slate-400 font-bold hover:text-primary hover:border-primary transition-all">
-              <span className="material-symbols-outlined">add_circle</span>
+              <Icon name="add_circle" />
               <span>Nova Pasta</span>
             </button>
           </div>
@@ -453,7 +467,7 @@ export default function App() {
         onBack={currentScreen !== 'home' && currentScreen !== 'processing' ? () => setCurrentScreen('home') : undefined}
         rightElement={currentScreen === 'home' && (
           <button onClick={() => setCurrentScreen('settings')} className="size-10 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-90">
-            <span className="material-symbols-outlined">account_circle</span>
+            <Icon name="account_circle" />
           </button>
         )}
       />
