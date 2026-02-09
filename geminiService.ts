@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/genai";
+import '{ GoogleGenerativeAI } from "@google/generative-ai";'
 
 // Aqui está a mágica: ele vai ler a chave que você salvou no Netlify
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
