@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
@@ -6,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>OCR-WILL</title>
     
-    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#050B14">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="OCR-WILL">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3022/3022234.png">
-    <link rel="manifest" href="manifest.json">
+    
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -79,7 +79,8 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
+                // Ajuste aqui: Barra "/" antes do nome do arquivo
+                navigator.serviceWorker.register('/sw.js')
                 .then(reg => console.log('SW Registered!', reg))
                 .catch(err => console.log('SW registration failed', err));
             });
