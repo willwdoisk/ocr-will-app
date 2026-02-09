@@ -1,30 +1,21 @@
-// src/geminiService.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-/**
- * Atenção: variáveis VITE_ são expostas no bundle do frontend.
- * Usamos logs temporários apenas para debug — remova-os depois.
- */
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
-// DEBUG: presença e comprimento da chave (NÃO imprime o valor completo)
+// DEBUG: verifica presença e comprimento da chave (não imprimir o valor completo)
 console.log("DEBUG: VITE_GEMINI_API_KEY presente?", !!API_KEY, "comprimento:", API_KEY ? API_KEY.length : 0);
 
-// Inicializa cliente e modelo (ajustado para models/gemini-1.5-flash)
+// Inicializa o cliente e o modelo (nome completo do modelo)
 const genAI = new GoogleGenerativeAI(API_KEY);
 const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
 
-/** Limpa header data:... e espaços do base64 */
+// Função utilitária para limpar o base64 (remove header e espaços)
 function cleanBase64(dataUrlOrBase64: string) {
   const withoutHeader = dataUrlOrBase64.includes(",") ? dataUrlOrBase64.split(",")[1] : dataUrlOrBase64;
   return withoutHeader.replace(/\s/g, "");
 }
 
-/**
- * performOCR
- * - Recebe um base64 (dataURL ou base64 puro)
- * - Envia como inlineData para o modelo, pede extração de texto
- */
+// Função principal de OCR
 export async function performOCR(base64: string): Promise<string> {
   console.log("DEBUG: performOCR chamado (modelo: models/gemini-1.5-flash)");
   console.log("DEBUG: chave presente?", !!API_KEY);
@@ -36,6 +27,7 @@ export async function performOCR(base64: string): Promise<string> {
 
   try {
     const cleaned = cleanBase64(base64);
+    // Detecta mimeType de forma simples
     const mimeType = base64.startsWith("data:image/jpeg") || base64.startsWith("/9j/") ? "image/jpeg" : "image/png";
 
     console.log("DEBUG: base64 length:", cleaned.length, "mimeType:", mimeType);
@@ -55,17 +47,21 @@ export async function performOCR(base64: string): Promise<string> {
     const result = await model.generateContent(prompt as any);
     const response = await result.response;
 
-    // Tenta extrair texto de formas diferentes dependendo do SDK/versão
+    // Interpreta a resposta de forma robusta considerando variações do SDK
     let extracted = "";
     try {
-      if (response && typeof response.text === "function") {
-        extracted = await response.text();
-      } else if (response && response.output && Array.isArray(response.output)) {
-        extracted = response.output.map((o: any) => o.content || o.text || "").join("\n");
-      } else if (typeof response === "string") {
-        extracted = response;
-      } else {
-        extracted = JSON.stringify(response);
+      if (response) {
+        if (typeof response.text === "function") {
+          extracted = await response.text();
+        } else if (response.output && Array.isArray(response.output)) {
+          extracted = response.output.map((o: any) => o.content || o.text || "").join("\n");
+        } else if (typeof response === "string") {
+          extracted = response;
+        } else if ((response as any).outputText) {
+          extracted = (response as any).outputText;
+        } else {
+          extracted = JSON.stringify(response);
+        }
       }
     } catch (innerErr) {
       console.warn("DEBUG: fallback ao interpretar response:", innerErr);
@@ -80,15 +76,12 @@ export async function performOCR(base64: string): Promise<string> {
     const status = error?.status || error?.code || error?.response?.status;
     if (status === 403) return "Erro: chave API inválida ou sem permissão (403).";
     if (status === 400) return "Erro: requisição inválida (400).";
-    if (status === 404) return "Erro: modelo/endpoint não encontrado (404). Verifique nome do modelo e lib.";
+    if (status === 404) return "Erro: modelo/endpoint não encontrado (404). Verifique nome do modelo e versão do SDK.";
     return "Erro ao processar imagem. Tente novamente.";
   }
 }
 
-/**
- * translateText
- * - Simples wrapper para tradução usando o mesmo modelo
- /
+// Função simples de tradução usando o mesmo modelo
 export async function translateText(inputText: string, targetLanguage = "Português"): Promise<string> {
   console.log("DEBUG: translateText chamado, comprimento:", inputText?.length || 0);
 
@@ -107,20 +100,14 @@ export async function translateText(inputText: string, targetLanguage = "Portugu
     const response = await result.response;
 
     let translated = "";
-    if (response && typeof response.text === "function") {
-      translated = await response.text();
-    } else if (response && response.output && Array.isArray(response.output)) {
-      translated = response.output.map((o: any) => o.content || o.text || "").join("\n");
-    } else if (typeof response === "string") {
-      translated = response;
-    } else {
-      translated = JSON.stringify(response);
-    }
-
-    console.log("DEBUG: translateText OK, comprimento resultado:", translated.length);
-    return translated;
-  } catch (error: any) {
-    console.error("DEBUG: Erro ao traduzir:", error);
-    throw new Error("Falha ao traduzir");
-  }
-}
+    if (response) {
+      if (typeof response.text === "function") {
+        translated = await response.text();
+      } else if (response.output && Array.isArray(response.output)) {
+        translated = response.output.map((o: any) => o.content || o.text || "").join("\n");
+      } else if (typeof response === "string") {
+        translated = response;
+      } else if ((response as any).outputText) {
+        translated = (response as any).outputText;
+      } else {
+        translated =
