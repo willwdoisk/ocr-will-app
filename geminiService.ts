@@ -1,75 +1,55 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// Pega a chave das variáveis de ambiente do Vite
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(API_KEY);
-
-async function compressImage(base64Str: string): Promise<string> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || typeof Image === "undefined") {
-      return resolve(base64Str);
-    }
-
-    const img = new Image();
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        const maxDim = 1024;
-        let { width, height } = img;
-
-        if (width > maxDim || height > maxDim) {
-          const ratio = Math.min(maxDim / width, maxDim / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return resolve(base64Str);
-
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
-      } catch (e) {
-        resolve(base64Str);
-      }
-    };
-    img.onerror = () => resolve(base64Str);
-    img.src = base64Str;
-  });
-}
 
 export async function performOCR(base64: string): Promise<string> {
+  // Alerta de depuração: se a chave estiver vazia, o erro é no Netlify
+  if (!API_KEY) {
+    console.error("ERRO: A VITE_GEMINI_API_KEY não foi encontrada nas variáveis de ambiente.");
+    return "Erro de configuração: Chave API não encontrada no servidor.";
+  }
+
+  const genAI = new GoogleGenerativeAI(API_KEY);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   try {
-    const compressedData = await compressImage(base64);
-    // Remove o cabeçalho data:image/... se existir para enviar apenas o base64 puro
-    const base64Data = compressedData.split(",")[1] || compressedData;
+    // Limpa o base64 (remove o cabeçalho data:image/jpeg;base64,)
+    const base64Data = base64.includes(",") ? base64.split(",")[1] : base64;
 
     const result = await model.generateContent([
-      "Extraia todo o texto desta imagem. Retorne apenas o texto encontrado.",
-      { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: "image/jpeg"
+        }
+      },
+      { text: "Extraia apenas o texto desta imagem, sem comentários adicionais." },
     ]);
 
     const response = await result.response;
     return response.text();
-  } catch (error) {
-    console.error("Erro no Gemini OCR:", error);
-    return "Erro ao processar imagem. Verifique a chave da API e a conexão.";
+  } catch (error: any) {
+    console.error("Erro detalhado no Gemini:", error);
+    // Se o erro for 403 ou 400, geralmente é a chave
+    if (error.message?.includes("403") || error.message?.includes("API key")) {
+      return "Erro: Chave de API inválida ou sem permissão.";
+    }
+    return "Erro ao processar imagem. Tente novamente.";
   }
 }
 
 export async function translateText(text: string, targetLang: string): Promise<string> {
+  if (!API_KEY) return "Erro: Chave não configurada.";
+  
+  const genAI = new GoogleGenerativeAI(API_KEY);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-  const prompt = `Traduza o seguinte texto para ${targetLang}: ${text}`;
 
   try {
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(`Traduza para ${targetLang}: ${text}`);
     const response = await result.response;
     return response.text();
   } catch (error) {
-    console.error("Erro na tradução:", error);
-    return "Erro ao traduzir o texto.";
+    return "Erro na tradução.";
   }
 }
