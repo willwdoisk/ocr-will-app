@@ -1,0 +1,8 @@
+
+{
+  "name": "OCR-WILL",
+  "description": "A powerful OCR and transcription application that allows you to scan documents, extract text, and translate it instantly using Google Gemini.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
