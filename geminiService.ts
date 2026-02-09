@@ -5,9 +5,7 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 async function compressImage(base64Str: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    // Proteção caso o código rode em ambiente sem DOM (build server)
     if (typeof window === "undefined" || typeof Image === "undefined") {
-      // Não é possível comprimir no servidor — retorna a string original
       return resolve(base64Str);
     }
 
@@ -53,35 +51,22 @@ export async function performOCR(base64: string): Promise<string> {
     const compressedData = await compressImage(base64);
     const prompt = `Realize OCR (extração de texto) da imagem em base64 abaixo e retorne apenas o texto extraído:\n\n${compressedData}`;
 
+    console.log("Prompt enviado para Gemini:", prompt);
+
     const result = await model.generateContent(prompt);
-    // Ajuste abaixo conforme a forma como a lib retorna o texto.
-    // Aqui tento ler possíveis formatos comuns de resposta.
+
+    console.log("Resposta da Gemini:", result);
+
     const text =
       (result as any)?.response?.text ? (result as any).response.text() :
       (result as any)?.candidates?.[0]?.content ??
       JSON.stringify(result);
 
+    console.log("Texto extraído:", text);
+
     return String(text);
   } catch (error) {
     console.error("Erro no Gemini:", error);
     return "Erro ao processar imagem. Verifique a conexão.";
-  }
-}
-
-export async function translateText(text: string, targetLang: string): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-  const prompt = `Traduza o seguinte texto para ${targetLang}, mantendo o sentido original: ${text}`;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const translated =
-      (result as any)?.response?.text ? (result as any).response.text() :
-      (result as any)?.candidates?.[0]?.content ??
-      JSON.stringify(result);
-
-    return String(translated);
-  } catch (error) {
-    console.error("Erro na tradução:", error);
-    return "Erro ao traduzir o texto.";
   }
 }
