@@ -1,40 +1,47 @@
 import { createWorker } from 'tesseract.js';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Chave para a tradução via Gemini
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 /**
- * performOCR usando Tesseract.js
- * Não precisa de chaves de API, roda localmente no navegador.
+ * OCR LOCAL (Tesseract.js) - Já está funcionando!
  */
 export async function performOCR(imageSource: string): Promise<string> {
-  console.log("DEBUG: Iniciando OCR com Tesseract.js");
-  
+  console.log("DEBUG: Iniciando OCR local com Tesseract.js");
   try {
-    // Cria o trabalhador do Tesseract
-    const worker = await createWorker('por+eng'); // Carrega Português e Inglês
-
-    // Realiza o reconhecimento
+    const worker = await createWorker('por+eng');
     const { data: { text } } = await worker.recognize(imageSource);
-    
-    // Finaliza o trabalhador para liberar memória
     await worker.terminate();
-
-    console.log("DEBUG: OCR concluído com sucesso");
-    return text || "Nenhum texto encontrado na imagem.";
-  } catch (error: any) {
-    console.error("DEBUG: Erro no Tesseract OCR:", error);
-    return "Erro ao ler a imagem. Certifique-se de que é um arquivo de imagem válido.";
+    return text || "Nenhum texto encontrado.";
+  } catch (error) {
+    console.error("Erro no OCR:", error);
+    return "Erro ao ler a imagem localmente.";
   }
 }
 
 /**
- * translateText
- * Como o Tesseract não traduz, aqui temos duas opções:
- * 1. Manter o Gemini apenas para tradução (que é texto e dá menos erro).
- * 2. Usar uma API de tradução gratuita.
- * Por enquanto, vamos deixar um aviso ou usar uma chamada simples.
+ * TRADUÇÃO VIA GEMINI (Apenas Texto)
  */
-export async function translateText(text: string, targetLanguage = "Português"): Promise<string> {
-  // Para tradução, o Gemini costuma não dar erro de 404 (pois é só texto).
-  // Se quiser tentar manter o Gemini só para traduzir, me avise.
-  // Por ora, vamos retornar o texto com um aviso:
-  return `[Tradução para ${targetLanguage} indisponível no modo offline]: ${text}`;
+export async function translateText(inputText: string, targetLanguage = "Português"): Promise<string> {
+  console.log("DEBUG: Iniciando tradução via Gemini");
+  
+  if (!API_KEY) {
+    return `[Erro: Chave API não configurada no Vercel]. Texto original: ${inputText}`;
+  }
+
+  try {
+    const prompt = `Traduza o texto a seguir para ${targetLanguage}. Retorne APENAS a tradução, sem comentários: "${inputText}"`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const translatedText = response.text();
+    
+    return translatedText;
+  } catch (error: any) {
+    console.error("Erro na tradução Gemini:", error);
+    return `[Falha na tradução]: ${inputText}`;
+  }
 }
