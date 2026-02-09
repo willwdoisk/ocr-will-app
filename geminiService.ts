@@ -36,3 +36,4 @@ return result.response.text();
 console.error("Erro na tradução:", error);
 return "Erro ao traduzir o texto.";
 }
+}
