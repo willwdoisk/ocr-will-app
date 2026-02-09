@@ -1,49 +1,27 @@
+import { GoogleGenerativeAI } from "@google/genai";
 
-import { GoogleGenAI } from "@google/genai";
+// Aqui está a mágica: ele vai ler a chave que você salvou no Netlify
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(API_KEY);
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+export async function performOCR(base64: string) {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  
+  const base64Data = base64.split(",")[1];
+  const prompt = "Extraia todo o texto desta imagem. Formate de maneira clara e organizada.";
 
-export async function performOCR(base64Image: string): Promise<string> {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [
-        {
-          parts: [
-            { text: "Você é um especialista em OCR. Extraia TODO o texto desta imagem. Mantenha a formatação original (parágrafos, listas, valores de recibos). Se houver tabelas, tente representá-las de forma legível. Não adicione comentários, apenas o texto extraído." },
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: base64Image.split(',')[1] || base64Image
-              }
-            }
-          ]
-        }
-      ],
-      config: {
-        temperature: 0.1,
-      }
-    });
+  const result = await model.generateContent([
+    prompt,
+    { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
+  ]);
 
-    return response.text || "Nenhum texto detectado.";
-  } catch (error) {
-    console.error("OCR failed:", error);
-    throw error;
-  }
+  return result.response.text();
 }
 
-export async function translateText(text: string, targetLanguage: string = "Português"): Promise<string> {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Traduza o seguinte texto para ${targetLanguage}. Mantenha o tom original e a formatação: \n\n${text}`,
-      config: {
-        temperature: 0.3,
-      }
-    });
-    return response.text || text;
-  } catch (error) {
-    console.error("Translation failed:", error);
-    return text;
-  }
+export async function translateText(text: string, targetLang: string) {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const prompt = `Traduza o seguinte texto para ${targetLang}, mantendo o sentido original: ${text}`;
+  
+  const result = await model.generateContent(prompt);
+  return result.response.text();
 }
